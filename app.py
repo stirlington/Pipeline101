@@ -10,9 +10,7 @@ html_content = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Combined Recruitment Pipeline Tracker</title>
-    <link rel="stylesheet" href="styles.css">
     <style>
-        /* Add any additional styles here */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -44,7 +42,6 @@ html_content = """
         .nav-item.active {
             background-color: rgba(255, 255, 255, 0.2);
         }
-        /* Add more styles as needed */
     </style>
 </head>
 <body>
@@ -64,7 +61,7 @@ html_content = """
 
     <div class="table-container">
         <h2>Perm Pipeline</h2>
-        <table>
+        <table border="1">
             <thead>
                 <tr>
                     <th>Consultant</th>
@@ -86,35 +83,23 @@ html_content = """
     </div>
 
     <script>
-        // JavaScript functions go here
         const CONSULTANTS = ['Chris', 'Max'];
 
         function addRow() {
             const tbody = document.getElementById('pipelineBody');
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>
-                    <select class="consultant">
-                        <option value="">Select Consultant</option>
-                        ${CONSULTANTS.map(consultant => `<option value="${consultant}">${consultant}</option>`).join('')}
-                    </select>
-                </td>
+                <td><select class="consultant"><option value="">Select Consultant</option>${CONSULTANTS.map(consultant => `<option value="${consultant}">${consultant}</option>`).join('')}</select></td>
                 <td><input type="text" class="client-name"></td>
                 <td><input type="text" class="role"></td>
+                <td><input type="text" class="candidate"></td>
                 <td><input type="number" class="fee-percent"></td>
                 <td class="fee">£0.00</td>
                 <td><input type="number" class="probability"></td>
                 <td class="probability-fee">£0.00</td>
-                <td>
-                    <select class="vat">
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                    </select>
-                </td>
-                <td>
-                    <button onclick="deleteRow(this)">Delete</button>
-                </td>
-            `;
+                <td><select class="vat"><option value="Yes">Yes</option><option value="No">No</option></select></td>
+                <td><input type="text" class="invoice-month"></td>
+                <td><button onclick="deleteRow(this)">Delete</button></td>`;
             tbody.appendChild(row);
         }
 
