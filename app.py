@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# Sample data initialization
+# Initialize sample data
 pipeline_data = pd.DataFrame(columns=[
-    'Consultant', 'Client Name', 'Vacancy', 'Candidate', 'Salary/Hourly Rate',
-    'Currency', 'Fee %', 'Fee £', 'Probability %', 'Probability £',
+    'Consultant', 'Client Name', 'Vacancy', 'Candidates', 'Currency',
+    'Fee %', 'Fee £', 'Probability %', 'Probability £',
     'VAT', 'Estimated Month'
 ])
 
@@ -13,16 +13,9 @@ offered_data = pd.DataFrame(columns=pipeline_data.columns)
 invoice_data = pd.DataFrame(columns=pipeline_data.columns)
 rejected_data = pd.DataFrame(columns=pipeline_data.columns)
 
-# Function to display the logo and make it clickable
+# Function to display the logo at the top left
 def display_logo():
-    st.markdown(
-        """
-        <a href="/">
-            <img src="logo.png" style="position: absolute; top: 10px; left: 10px;" width="100">
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
+    st.sidebar.image("logo.png", use_column_width=True)
 
 def home_page():
     display_logo()
@@ -42,12 +35,54 @@ def pipeline_page():
     
     global pipeline_data
     
-    # Use st.data_editor instead of experimental version
-    edited_pipeline_data = st.data_editor(pipeline_data, num_rows="dynamic")
+    # Editable DataFrame for pipeline
+    edited_pipeline_data = st.experimental_data_editor(pipeline_data, num_rows="dynamic")
     
     if not edited_pipeline_data.equals(pipeline_data):
         pipeline_data = edited_pipeline_data.copy()
         st.success('Pipeline updated successfully!')
+    
+    # Adding multiple candidates to a single vacancy
+    with st.form(key='add_candidates'):
+        consultant = st.selectbox("Consultant", ["Chris", "Max"])
+        client_name = st.text_input("Client Name")
+        vacancy = st.text_input("Vacancy")
+        candidates = st.text_area("Candidates (Enter each candidate's salary on a new line)")
+        currency = st.selectbox("Currency", ["£", "$", "€"])
+        fee_percent = st.number_input("Fee %", min_value=0.0, max_value=100.0)
+        probability_percent = st.number_input("Probability %", min_value=0.0, max_value=100.0)
+        vat = st.selectbox("VAT Applicable?", ["Yes", "No"])
+        estimated_month = st.selectbox("Estimated Month of Projection", [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ])
+        
+        submit_button = st.form_submit_button(label='Add to Pipeline')
+        
+        if submit_button:
+            # Process candidate salaries
+            candidate_salaries = [float(salary.strip()) for salary in candidates.split('\n') if salary.strip()]
+            if candidate_salaries:
+                min_salary = min(candidate_salaries)
+                fee_pounds = min_salary * (fee_percent / 100)
+                probability_pounds = fee_pounds * (probability_percent / 100)
+                
+                new_entry = {
+                    'Consultant': consultant,
+                    'Client Name': client_name,
+                    'Vacancy': vacancy,
+                    'Candidates': ', '.join(map(str, candidate_salaries)),
+                    'Currency': currency,
+                    'Fee %': fee_percent,
+                    'Fee £': fee_pounds,
+                    'Probability %': probability_percent,
+                    'Probability £': probability_pounds,
+                    'VAT': vat,
+                    'Estimated Month': estimated_month
+                }
+                
+                pipeline_data = pipeline_data.append(new_entry, ignore_index=True)
+                st.success('Entry added to pipeline!')
 
 def offered_pipeline():
     display_logo()
@@ -134,16 +169,10 @@ def main():
         "Stats": stats_page,
     }
     
-    # Apply branding colors using Streamlit's theming options
+    # Set page config and theme
     primary_color = "#80CE78"
     
-    # Set page config and theme
-    st.set_page_config(page_title="Stirling Q&R Recruitment Pipeline",
-                       page_icon="logo.png",
-                       layout="wide",
-                       initial_sidebar_state="expanded")
-    
-    # Sidebar styling (using primary color)
+    # Apply sidebar styling using primary color
     sidebar_style = f"""
         <style>
             .css-1d391kg {{
@@ -152,20 +181,24 @@ def main():
             .css-18e3th9 {{
                 padding-top: 50px;
             }}
+            .css-1aumxhk {{
+                padding-left: 10px;
+            }}
         </style>
         """
     
     # Apply sidebar styling
     st.markdown(sidebar_style, unsafe_allow_html=True)
-    
+
     # Sidebar navigation
-    st.sidebar.title("Navigation")
-    
-    selection = st.sidebar.radio("Go to", list(pages.keys()))
-    
-    page_function = pages[selection]
-    
-    page_function()
+    with st.sidebar:
+        display_logo()
+        
+        selection = st.radio("Go to", list(pages.keys()))
+        
+        page_function = pages[selection]
+        
+        page_function()
 
 if __name__ == "__main__":
     main()
