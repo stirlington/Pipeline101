@@ -38,22 +38,44 @@ def pipeline_page():
     global pipeline_data
     
     # Editable DataFrame for pipeline with dropdowns and auto-calculation
+    if st.button("Add Candidate"):
+        new_row = pd.Series({
+            'Consultant': '',
+            'Client Name': '',
+            'Vacancy': '',
+            'Candidate': '',
+            'Salary/Hourly Rate': 0.0,
+            'Currency': '',
+            'Fee %': 0.0,
+            'Fee £': 0.0,
+            'Probability %': 0.0,
+            'Probability £': 0.0,
+            'VAT': '',
+            'Estimated Month': ''
+        })
+        pipeline_data = pipeline_data.append(new_row, ignore_index=True)
+
     edited_pipeline_data = pipeline_data.copy()
 
-    # Display current pipeline as a table without scrollbars
-    edited_pipeline_data['Consultant'] = edited_pipeline_data['Consultant'].apply(
-        lambda x: st.selectbox('Consultant', ['Chris', 'Max'], index=['Chris', 'Max'].index(x) if x in ['Chris', 'Max'] else 0)
-    )
-    
-    # Calculate Fee £ and Probability £ automatically based on Salary/Hourly Rate and Fee %
-    if not edited_pipeline_data.empty:
-        edited_pipeline_data['Fee £'] = edited_pipeline_data['Salary/Hourly Rate'] * (edited_pipeline_data['Fee %'] / 100)
-        edited_pipeline_data['Probability £'] = edited_pipeline_data['Fee £'] * (edited_pipeline_data['Probability %'] / 100)
-    
-    # Display the editable DataFrame
-    st.experimental_data_editor(edited_pipeline_data, use_container_width=True)
+    for index, row in edited_pipeline_data.iterrows():
+        consultant = st.selectbox('Consultant', ['Chris', 'Max'], key=f'consultant_{index}')
+        client_name = st.text_input('Client Name', row['Client Name'], key=f'client_{index}')
+        vacancy = st.text_input('Vacancy', row['Vacancy'], key=f'vacancy_{index}')
+        candidate = st.text_input('Candidate', row['Candidate'], key=f'candidate_{index}')
+        salary_hourly_rate = st.number_input('Salary/Hourly Rate', value=row['Salary/Hourly Rate'], key=f'salary_{index}')
+        currency = st.selectbox('Currency', ['£', '$', '€'], key=f'currency_{index}')
+        fee_percent = st.number_input('Fee %', value=row['Fee %'], key=f'fee_percent_{index}')
+        probability_percent = st.number_input('Probability %', value=row['Probability %'], key=f'probability_percent_{index}')
+        vat = st.selectbox('VAT Applicable?', ['Yes', 'No'], key=f'vat_{index}')
+        estimated_month = st.selectbox('Estimated Month of Projection', months, key=f'estimated_month_{index}')
 
-    # Update global data if changes are made
+        fee_pounds = salary_hourly_rate * (fee_percent / 100)
+        probability_pounds = fee_pounds * (probability_percent / 100)
+
+        edited_pipeline_data.at[index, :] = [consultant, client_name, vacancy, candidate, salary_hourly_rate,
+                                             currency, fee_percent, fee_pounds, probability_percent,
+                                             probability_pounds, vat, estimated_month]
+
     if not edited_pipeline_data.equals(pipeline_data):
         pipeline_data.update(edited_pipeline_data)
         st.success('Pipeline updated successfully!')
