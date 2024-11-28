@@ -1,2 +1,5 @@
-flask==3.1.0
 streamlit
+pandas
+numpy
+openpyxl  # For Excel export functionality
+plotly    # For interactive charts
