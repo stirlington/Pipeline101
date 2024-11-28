@@ -18,7 +18,7 @@ def display_logo():
     st.markdown(
         """
         <a href="/">
-            <img src="logo.png" style="position: absolute; top: 10px; right: 10px;" width="100">
+            <img src="logo.png" style="position: absolute; top: 10px; left: 10px;" width="100">
         </a>
         """,
         unsafe_allow_html=True
@@ -28,14 +28,12 @@ def home_page():
     display_logo()
     st.title("Home Page")
     
-    # Dropdown for selecting year and month
     year = st.selectbox("Select Year", ["2024", "2025", "2026"])
     month = st.selectbox("Select Month", [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ])
     
-    # Display projected amounts (dummy data for illustration)
     st.write(f"Projected amount for {month} {year}: £{np.random.randint(1000, 10000)}")
 
 def pipeline_page():
@@ -44,10 +42,9 @@ def pipeline_page():
     
     global pipeline_data
     
-    # Allow direct editing of the pipeline table
-    edited_pipeline_data = st.experimental_data_editor(pipeline_data, num_rows="dynamic")
+    # Use st.data_editor instead of experimental version
+    edited_pipeline_data = st.data_editor(pipeline_data, num_rows="dynamic")
     
-    # Update the global pipeline data with any changes made in the editor
     if not edited_pipeline_data.equals(pipeline_data):
         pipeline_data = edited_pipeline_data.copy()
         st.success('Pipeline updated successfully!')
@@ -58,11 +55,9 @@ def offered_pipeline():
     
     global offered_data
     
-    # Display offered candidates
     if not offered_data.empty:
         st.dataframe(offered_data)
         
-        # Action buttons for each row
         for i in range(len(offered_data)):
             col1, col2 = st.columns(2)
             with col1:
@@ -82,14 +77,12 @@ def invoice_pipeline():
     
     global invoice_data
     
-    # Display invoiced candidates
     if not invoice_data.empty:
         invoice_data['Start Date'] = pd.to_datetime(invoice_data['Estimated Month'], format='%B')
-        invoice_data['Payment Terms'] = 30  # Assume 30 days payment terms
+        invoice_data['Payment Terms'] = 30
         
         invoice_data['Due Date'] = invoice_data['Start Date'] + pd.to_timedelta(invoice_data['Payment Terms'], unit='d')
         
-        # Add checkbox for paid invoices
         invoice_data['Paid'] = False
         
         for i in range(len(invoice_data)):
@@ -112,15 +105,12 @@ def rejected_pipeline():
     
     global rejected_data
     
-    # Display rejected candidates
     if not rejected_data.empty:
         st.dataframe(rejected_data)
 
 def stats_page():
     display_logo()
     st.title("Stats Page")
-    
-    # Example statistics (dummy data for illustration)
     
     total_candidates = len(pipeline_data) + len(offered_data) + len(invoice_data) + len(rejected_data)
     
@@ -134,7 +124,6 @@ def stats_page():
     for key, value in stats.items():
         st.write(f"{key}: {value}")
     
-# Main function to run the app
 def main():
     pages = {
         "Home": home_page,
@@ -145,9 +134,33 @@ def main():
         "Stats": stats_page,
     }
     
+    # Apply branding colors using Streamlit's theming options
+    primary_color = "#80CE78"
+    
+    # Set page config and theme
+    st.set_page_config(page_title="Stirling Q&R Recruitment Pipeline",
+                       page_icon="logo.png",
+                       layout="wide",
+                       initial_sidebar_state="expanded")
+    
+    # Sidebar styling (using primary color)
+    sidebar_style = f"""
+        <style>
+            .css-1d391kg {{
+                background-color: {primary_color};
+            }}
+            .css-18e3th9 {{
+                padding-top: 50px;
+            }}
+        </style>
+        """
+    
+    # Apply sidebar styling
+    st.markdown(sidebar_style, unsafe_allow_html=True)
+    
+    # Sidebar navigation
     st.sidebar.title("Navigation")
     
-    # Sidebar radio buttons for persistent navigation
     selection = st.sidebar.radio("Go to", list(pages.keys()))
     
     page_function = pages[selection]
