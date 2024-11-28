@@ -44,48 +44,13 @@ def pipeline_page():
     
     global pipeline_data
     
-    # Display current pipeline as a table
-    st.dataframe(pipeline_data)
+    # Allow direct editing of the pipeline table
+    edited_pipeline_data = st.experimental_data_editor(pipeline_data, num_rows="dynamic")
     
-    # Form to add new entries
-    with st.form(key='add_pipeline'):
-        consultant = st.selectbox("Consultant", ["Chris", "Max"])
-        client_name = st.text_input("Client Name")
-        vacancy = st.text_input("Vacancy")
-        candidate = st.text_input("Candidate")
-        salary_hourly_rate = st.number_input("Salary/Hourly Rate", min_value=0.0)
-        currency = st.selectbox("Currency", ["£", "$", "€"])
-        fee_percent = st.number_input("Fee %", min_value=0.0, max_value=100.0)
-        probability_percent = st.number_input("Probability %", min_value=0.0, max_value=100.0)
-        vat = st.selectbox("VAT Applicable?", ["Yes", "No"])
-        estimated_month = st.selectbox("Estimated Month of Projection", [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ])
-        
-        submit_button = st.form_submit_button(label='Add to Pipeline')
-        
-        if submit_button:
-            fee_pounds = salary_hourly_rate * (fee_percent / 100)
-            probability_pounds = fee_pounds * (probability_percent / 100)
-            
-            new_entry = {
-                'Consultant': consultant,
-                'Client Name': client_name,
-                'Vacancy': vacancy,
-                'Candidate': candidate,
-                'Salary/Hourly Rate': salary_hourly_rate,
-                'Currency': currency,
-                'Fee %': fee_percent,
-                'Fee £': fee_pounds,
-                'Probability %': probability_percent,
-                'Probability £': probability_pounds,
-                'VAT': vat,
-                'Estimated Month': estimated_month
-            }
-            
-            pipeline_data = pipeline_data.append(new_entry, ignore_index=True)
-            st.success('Entry added to pipeline!')
+    # Update the global pipeline data with any changes made in the editor
+    if not edited_pipeline_data.equals(pipeline_data):
+        pipeline_data = edited_pipeline_data.copy()
+        st.success('Pipeline updated successfully!')
 
 def offered_pipeline():
     display_logo()
@@ -182,24 +147,12 @@ def main():
     
     st.sidebar.title("Navigation")
     
-    # Create a button for each page in the sidebar
-    if st.sidebar.button("Home"):
-        pages["Home"]()
-        
-    elif st.sidebar.button("Pipeline"):
-        pages["Pipeline"]()
-        
-    elif st.sidebar.button("Offered"):
-        pages["Offered"]()
-        
-    elif st.sidebar.button("Invoice"):
-        pages["Invoice"]()
-        
-    elif st.sidebar.button("Rejected"):
-        pages["Rejected"]()
-        
-    elif st.sidebar.button("Stats"):
-        pages["Stats"]()
+    # Sidebar radio buttons for persistent navigation
+    selection = st.sidebar.radio("Go to", list(pages.keys()))
+    
+    page_function = pages[selection]
+    
+    page_function()
 
 if __name__ == "__main__":
     main()
