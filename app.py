@@ -1,66 +1,96 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image
 
-# Load logo
-logo = Image.open("logo.png")
-
-# Display logo and title
-st.image(logo, width=150)
-st.title("Recruitment Pipeline Tracker")
-
-# Initialize session state for data storage
-if 'pipeline_data' not in st.session_state:
-    st.session_state['pipeline_data'] = []
+# Initialize session state for storing data
 if 'offered_list' not in st.session_state:
     st.session_state['offered_list'] = []
+if 'contract_offered_list' not in st.session_state:
+    st.session_state['contract_offered_list'] = []
+if 'invoiced_list' not in st.session_state:
+    st.session_state['invoiced_list'] = []
+if 'rejected_list' not in st.session_state:
+    st.session_state['rejected_list'] = []
 
-# Function to load data into DataFrame
-def load_data(data_key):
-    return pd.DataFrame(st.session_state[data_key])
+# Function to format currency
+def format_currency(amount):
+    return f"£{amount:,.2f}"
 
-# Function to add candidate to pipeline
-def add_to_pipeline():
-    new_entry = {
-        'Consultant': st.selectbox('Consultant', ['Chris', 'Max']),
-        'Client Name': st.text_input('Client Name'),
-        'Role': st.text_input('Role'),
-        'Candidate': st.text_input('Candidate'),
-        'Salary/Rate': st.number_input('Salary/Rate', min_value=0.0),
-        'Fee %': st.number_input('Fee %', min_value=0.0),
-        'Fee (£)': st.number_input('Fee (£)', min_value=0.0),
-        'Probability %': st.number_input('Probability %', min_value=0.0),
-        'Probability Fee (£)': st.number_input('Probability Fee (£)', min_value=0.0),
-        'VAT': st.selectbox('VAT', ['Yes', 'No']),
-        'Est Invoice Month': st.selectbox('Est Invoice Month', ['January', 'February', 'March', 
-                                                                'April', 'May', 'June', 
-                                                                'July', 'August', 'September', 
-                                                                'October', 'November', 'December'])
-    }
-    if st.button('Add to Pipeline'):
-        st.session_state['pipeline_data'].append(new_entry)
-        st.success("Candidate added to pipeline!")
+# Function to calculate totals
+def calculate_totals():
+    perm_offers_total = sum([float(offer.get('fee', 0)) for offer in st.session_state['offered_list']])
+    contract_offers_total = sum([float(offer.get('fee', 0)) for offer in st.session_state['contract_offered_list']])
+    total_invoiced = sum([float(inv.get('amount', 0)) for inv in st.session_state['invoiced_list']])
+    paid_total = sum([float(inv.get('paidAmount', 0)) for inv in st.session_state['invoiced_list']])
+    
+    return perm_offers_total, contract_offers_total, total_invoiced, paid_total
 
-# Function to move candidate to offered list
-def move_to_offered(index):
-    offered_candidate = st.session_state['pipeline_data'].pop(index)
-    st.session_state['offered_list'].append(offered_candidate)
-    st.success("Candidate moved to offered list!")
+# Navigation
+st.sidebar.title("Navigation")
+pages = ["Home", "Perm Pipeline", "Contractor Pipeline", "Perm Offers", "Contractor Offers", "Rejected/Failed", "Invoiced", "Stats"]
+selection = st.sidebar.radio("Go to", pages)
 
-# Display pipeline candidates
-st.header("Pipeline Candidates")
-pipeline_df = load_data('pipeline_data')
-st.dataframe(pipeline_df)
+# Home Page
+if selection == "Home":
+    st.title("Recruitment Dashboard")
+    perm_offers_total, contract_offers_total, total_invoiced, paid_total = calculate_totals()
+    
+    # Display Quick Stats
+    st.subheader("Quick Stats")
+    st.metric(label="YTD Invoiced", value=format_currency(total_invoiced))
+    st.metric(label="Paid Total", value=format_currency(paid_total))
+    st.metric(label="Total Perm Pipeline", value=format_currency(perm_offers_total))
+    st.metric(label="Total Contract Pipeline", value=format_currency(contract_offers_total))
 
-for i, row in pipeline_df.iterrows():
-    if st.button(f"Move {row['Candidate']} to Offered", key=f"offer_{i}"):
-        move_to_offered(i)
+# Perm Pipeline Page
+elif selection == "Perm Pipeline":
+    st.title("Perm Pipeline")
+    # Display Perm Pipeline Data (Placeholder)
+    perm_pipeline_df = pd.DataFrame(st.session_state['offered_list'])  # Example dataframe
+    if not perm_pipeline_df.empty:
+        st.table(perm_pipeline_df)
 
-# Display offered candidates
-st.header("Offered Candidates")
-offered_df = load_data('offered_list')
-st.dataframe(offered_df)
+# Contractor Pipeline Page
+elif selection == "Contractor Pipeline":
+    st.title("Contractor Pipeline")
+    # Display Contractor Pipeline Data (Placeholder)
+    contractor_pipeline_df = pd.DataFrame(st.session_state['contract_offered_list'])  # Example dataframe
+    if not contractor_pipeline_df.empty:
+        st.table(contractor_pipeline_df)
 
-# Add new candidate section
-st.header("Add New Candidate to Pipeline")
-add_to_pipeline()
+# Perm Offers Page
+elif selection == "Perm Offers":
+    st.title("Perm Offers")
+    # Display Perm Offers Data (Placeholder)
+    perm_offers_df = pd.DataFrame(st.session_state['offered_list'])  # Example dataframe
+    if not perm_offers_df.empty:
+        st.table(perm_offers_df)
+
+# Contractor Offers Page
+elif selection == "Contractor Offers":
+    st.title("Contractor Offers")
+    # Display Contractor Offers Data (Placeholder)
+    contractor_offers_df = pd.DataFrame(st.session_state['contract_offered_list'])  # Example dataframe
+    if not contractor_offers_df.empty:
+        st.table(contractor_offers_df)
+
+# Rejected/Failed Page
+elif selection == "Rejected/Failed":
+    st.title("Rejected/Failed")
+    # Display Rejected Candidates Data (Placeholder)
+    rejected_df = pd.DataFrame(st.session_state['rejected_list'])  # Example dataframe
+    if not rejected_df.empty:
+        st.table(rejected_df)
+
+# Invoiced Page
+elif selection == "Invoiced":
+    st.title("Invoiced")
+    # Display Invoiced Data (Placeholder)
+    invoiced_df = pd.DataFrame(st.session_state['invoiced_list'])  # Example dataframe
+    if not invoiced_df.empty:
+        st.table(invoiced_df)
+
+# Stats Page
+elif selection == "Stats":
+    st.title("Pipeline Statistics")
+    
+    # Placeholder for stats calculations and visualizations
