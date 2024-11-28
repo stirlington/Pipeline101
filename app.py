@@ -15,19 +15,25 @@ rejected_data = pd.DataFrame(columns=pipeline_data.columns)
 
 # Function to display the logo at the top left
 def display_logo():
-    st.sidebar.image("logo.png", use_column_width=True)
+    st.image("logo.png", width=100, use_column_width=False)
 
 def home_page():
     display_logo()
     st.title("Home Page")
     
+    # Dropdown for selecting year
     year = st.selectbox("Select Year", ["2024", "2025", "2026"])
-    month = st.selectbox("Select Month", [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ])
     
-    st.write(f"Projected amount for {month} {year}: £{np.random.randint(1000, 10000)}")
+    # Table for projected amounts by month
+    months = ["January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
+    projected_amounts = {month: np.random.randint(1000, 10000) for month in months}
+    
+    # Create a DataFrame for display
+    df_projected = pd.DataFrame(list(projected_amounts.items()), columns=["Month", f"Projected Amount (£) for {year}"])
+    
+    # Display the DataFrame
+    st.table(df_projected)
 
 def pipeline_page():
     display_logo()
@@ -35,12 +41,8 @@ def pipeline_page():
     
     global pipeline_data
     
-    # Editable DataFrame for pipeline
-    edited_pipeline_data = st.experimental_data_editor(pipeline_data, num_rows="dynamic")
-    
-    if not edited_pipeline_data.equals(pipeline_data):
-        pipeline_data = edited_pipeline_data.copy()
-        st.success('Pipeline updated successfully!')
+    # Display current pipeline as a table
+    st.dataframe(pipeline_data)
     
     # Adding multiple candidates to a single vacancy
     with st.form(key='add_candidates'):
@@ -191,14 +193,11 @@ def main():
     st.markdown(sidebar_style, unsafe_allow_html=True)
 
     # Sidebar navigation
-    with st.sidebar:
-        display_logo()
-        
-        selection = st.radio("Go to", list(pages.keys()))
-        
-        page_function = pages[selection]
-        
-        page_function()
+    selection = st.sidebar.radio("Go to", list(pages.keys()))
+    
+    page_function = pages[selection]
+    
+    page_function()
 
 if __name__ == "__main__":
     main()
