@@ -1,651 +1,205 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Perm Pipeline</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="header">
-        <h1>Perm Pipeline</h1>
-        <nav class="navigation">
-            <a href="index.html" class="nav-item">Home</a>
-            <a href="Pipeline.html" class="nav-item active">Perm Pipeline</a>
-            <a href="Contractor.html" class="nav-item">Contractor Pipeline</a>
-            <a href="PermOffers.html" class="nav-item">Perm Offers</a>
-            <a href="ContractorOffers.html" class="nav-item">Contractor Offers</a>
-            <a href="Rejected.html" class="nav-item">Rejected/Failed</a>
-            <a href="Invoiced.html" class="nav-item">Invoiced</a>
-            <a href="Stats.html" class="nav-item">Stats</a>
-        </nav>
-    </div>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Consultant</th>
-                    <th>Client Name</th>
-                    <th>Role</th>
-                    <th>Candidate</th>
-                    <th>Fee %</th>
-                    <th>Fee (£)</th>
-                    <th>Probability %</th>
-                    <th>Probability Fee (£)</th>
-                    <th>VAT</th>
-                    <th>Est. Invoice Month</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="pipelineBody"></tbody>
-        </table>
-    </div>
-    <button onclick="addRow()" class="add-row-button">Add New Row</button>
+import streamlit as st
+import pandas as pd
+import numpy as np
 
-    <!-- Modal HTML -->
-    <div id="candidateModal" class="modal">
-        <div class="modal-content">
-            <h2>Select Candidate to Offer</h2>
-            <div id="candidateList"></div>
-            <div class="modal-buttons">
-                <button onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
+# Sample data initialization
+pipeline_data = pd.DataFrame(columns=[
+    'Consultant', 'Client Name', 'Vacancy', 'Candidate', 'Salary/Hourly Rate',
+    'Currency', 'Fee %', 'Fee £', 'Probability %', 'Probability £',
+    'VAT', 'Estimated Month'
+])
 
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
+offered_data = pd.DataFrame(columns=pipeline_data.columns)
+invoice_data = pd.DataFrame(columns=pipeline_data.columns)
+rejected_data = pd.DataFrame(columns=pipeline_data.columns)
 
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 500px;
-        }
+# Function to display the logo and make it clickable
+def display_logo():
+    st.markdown(
+        """
+        <a href="/">
+            <img src="logo.png" style="position: absolute; top: 10px; right: 10px;" width="100">
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
-        .candidate-option {
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+def home_page():
+    display_logo()
+    st.title("Home Page")
+    
+    # Dropdown for selecting year and month
+    year = st.selectbox("Select Year", ["2024", "2025", "2026"])
+    month = st.selectbox("Select Month", [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ])
+    
+    # Display projected amounts (dummy data for illustration)
+    st.write(f"Projected amount for {month} {year}: £{np.random.randint(1000, 10000)}")
 
-        .candidate-option:hover {
-            background-color: #f0f0f0;
-        }
-
-        .modal-buttons {
-            margin-top: 20px;
-            text-align: right;
-        }
-
-        .candidate-entry {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 5px;
-        }
-
-        .candidate-entry input,
-        .candidate-entry select {
-            padding: 4px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .candidate-entry .candidate-name {
-            width: 150px;
-        }
-
-        .candidate-entry .candidate-salary {
-            width: 100px;
-        }
-
-        .candidate-entry .currency {
-            width: 70px;
-        }
-
-        .date-container {
-            display: flex;
-            gap: 5px;
-        }
-
-        .date-container select {
-            padding: 4px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .est-invoice-month {
-            width: 100px;
-        }
-
-        .est-invoice-year {
-            width: 80px;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 10px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-
-        .input-row input,
-        .input-row select {
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            height: 30px;
-        }
-
-        .input-row button {
-            padding: 5px 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            height: 30px;
-        }
-
-        .totals-row {
-            display: flex;
-            gap: 20px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            margin-bottom: 10px;
-        }
-
-        .totals-row span {
-            font-weight: bold;
-        }
-
-        #totalFee,
-        #totalProbabilityFee {
-            color: #007bff;
-        }
-
-        /* Adjust input widths */
-        #consultant { width: 100px; }
-        #clientName { width: 150px; }
-        #role { width: 150px; }
-        #candidateName { width: 150px; }
-        #candidateAmount { width: 100px; }
-        #feePercentage { width: 80px; }
-        #probability { width: 80px; }
-        #estInvoiceMonth { width: 120px; }
-
-        .grand-total-row {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-
-        .grand-total-row td {
-            border-top: 2px solid #dee2e6;
-            padding: 15px 8px;
-        }
-    </style>
-
-    <script>
-        const CONSULTANTS = ['Chris', 'Max'];
-        const CONVERSION_RATES = {
-            GBP: 1,
-            USD: 0.79,
-            EUR: 0.86
-        };
-
-        function addRow() {
-            const tbody = document.getElementById('pipelineBody');
-            const row = document.createElement('tr');
-            const currentYear = new Date().getFullYear();
+def pipeline_page():
+    display_logo()
+    st.title("Pipeline")
+    
+    global pipeline_data
+    
+    # Display current pipeline as a table
+    st.dataframe(pipeline_data)
+    
+    # Form to add new entries
+    with st.form(key='add_pipeline'):
+        consultant = st.selectbox("Consultant", ["Chris", "Max"])
+        client_name = st.text_input("Client Name")
+        vacancy = st.text_input("Vacancy")
+        candidate = st.text_input("Candidate")
+        salary_hourly_rate = st.number_input("Salary/Hourly Rate", min_value=0.0)
+        currency = st.selectbox("Currency", ["£", "$", "€"])
+        fee_percent = st.number_input("Fee %", min_value=0.0, max_value=100.0)
+        probability_percent = st.number_input("Probability %", min_value=0.0, max_value=100.0)
+        vat = st.selectbox("VAT Applicable?", ["Yes", "No"])
+        estimated_month = st.selectbox("Estimated Month of Projection", [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ])
+        
+        submit_button = st.form_submit_button(label='Add to Pipeline')
+        
+        if submit_button:
+            fee_pounds = salary_hourly_rate * (fee_percent / 100)
+            probability_pounds = fee_pounds * (probability_percent / 100)
             
-            row.innerHTML = `
-                <td>
-                    <select class="consultant" onchange="saveToLocalStorage()">
-                        <option value="">Select Consultant</option>
-                        ${CONSULTANTS.map(consultant => 
-                            `<option value="${consultant}">${consultant}</option>`
-                        ).join('')}
-                    </select>
-                </td>
-                <td><input type="text" class="client-name" onchange="saveToLocalStorage()"></td>
-                <td><input type="text" class="role" onchange="saveToLocalStorage()"></td>
-                <td>
-                    <div class="candidates-container">
-                        <div class="candidate-entry">
-                            <input type="text" class="candidate-name" placeholder="Name" onchange="saveToLocalStorage()">
-                            <input type="number" class="candidate-salary" placeholder="Salary" onchange="calculateFees(this.closest('tr'))">
-                            <select class="currency" onchange="calculateFees(this.closest('tr'))">
-                                <option value="GBP">GBP</option>
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button type="button" class="add-candidate" onclick="addCandidate(this)">+ Add Candidate</button>
-                </td>
-                <td><input type="number" class="fee-percent" onchange="calculateFees(this.closest('tr'))"></td>
-                <td class="fee">£0.00</td>
-                <td><input type="number" class="probability" onchange="calculateFees(this.closest('tr'))"></td>
-                <td class="probability-fee">£0.00</td>
-                <td>
-                    <select class="vat" onchange="saveToLocalStorage()">
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                    </select>
-                </td>
-                <td>
-                    <div class="date-container">
-                        <select class="est-invoice-month" onchange="saveToLocalStorage()">
-                            <option value="">Month</option>
-                            ${['January', 'February', 'March', 'April', 'May', 'June', 
-                               'July', 'August', 'September', 'October', 'November', 'December']
-                                .map(month => `<option value="${month}">${month}</option>`
-                            ).join('')}
-                        </select>
-                        <select class="est-invoice-year" onchange="saveToLocalStorage()">
-                            <option value="">Year</option>
-                            ${[currentYear, currentYear + 1, currentYear + 2]
-                                .map(year => `<option value="${year}">${year}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                </td>
-                <td class="action-buttons">
-                    <button onclick="moveToOffered(this.closest('tr'))">Move to Offered</button>
-                    <button onclick="deleteRow(this)">Delete</button>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-            saveToLocalStorage();
-        }
-
-        function calculateFees(row) {
-            const candidateEntries = row.querySelectorAll('.candidate-entry');
-            
-            candidateEntries.forEach(entry => {
-                const salary = parseFloat(entry.querySelector('.candidate-salary').value) || 0;
-                const currency = entry.querySelector('.currency').value;
-                const feePercent = parseFloat(row.querySelector('.fee-percent').value) || 0;
-                const probability = parseFloat(row.querySelector('.probability').value) || 0;
-
-                // Convert salary to GBP
-                const salaryInGBP = salary * CONVERSION_RATES[currency];
-                
-                // Calculate fee in GBP
-                const fee = (salaryInGBP * feePercent) / 100;
-                
-                // Calculate probability fee
-                const probabilityFee = (fee * probability) / 100;
-
-                // Update the display
-                row.querySelector('.fee').textContent = `£${fee.toFixed(2)}`;
-                row.querySelector('.probability-fee').textContent = `£${probabilityFee.toFixed(2)}`;
-            });
-            
-            saveToLocalStorage();
-        }
-
-        function addCandidate(button) {
-            const container = button.previousElementSibling;
-            const newEntry = document.createElement('div');
-            newEntry.className = 'candidate-entry';
-            newEntry.innerHTML = `
-                <input type="text" class="candidate-name" placeholder="Name" onchange="saveToLocalStorage()">
-                <input type="number" class="candidate-salary" placeholder="Salary" onchange="calculateFees(this.closest('tr'))">
-                <select class="currency" onchange="calculateFees(this.closest('tr'))">
-                    <option value="GBP">GBP</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                </select>
-                <button type="button" class="remove-candidate" onclick="removeCandidate(this)">×</button>
-            `;
-            container.appendChild(newEntry);
-            
-            container.querySelectorAll('.remove-candidate').forEach(btn => {
-                btn.style.display = container.children.length > 1 ? 'block' : 'none';
-            });
-            
-            calculateFees(container.closest('tr'));
-        }
-
-        function removeCandidate(button) {
-            const entry = button.parentElement;
-            const container = entry.parentElement;
-            const row = container.closest('tr');
-            
-            entry.remove();
-            
-            if (container.children.length === 1) {
-                container.querySelector('.remove-candidate').style.display = 'none';
+            new_entry = {
+                'Consultant': consultant,
+                'Client Name': client_name,
+                'Vacancy': vacancy,
+                'Candidate': candidate,
+                'Salary/Hourly Rate': salary_hourly_rate,
+                'Currency': currency,
+                'Fee %': fee_percent,
+                'Fee £': fee_pounds,
+                'Probability %': probability_percent,
+                'Probability £': probability_pounds,
+                'VAT': vat,
+                'Estimated Month': estimated_month
             }
             
-            calculateFees(row);
-        }
+            pipeline_data = pipeline_data.append(new_entry, ignore_index=True)
+            st.success('Entry added to pipeline!')
 
-        function moveToOffered(row) {
-            const candidateEntries = row.querySelectorAll('.candidate-entry');
-            const modal = document.getElementById('candidateModal');
-            const candidateList = document.getElementById('candidateList');
-            candidateList.innerHTML = '';
-
-            candidateEntries.forEach(entry => {
-                const candidateName = entry.querySelector('.candidate-name').value;
-                const salary = entry.querySelector('.candidate-salary').value;
-                const currency = entry.querySelector('.currency').value;
-                
-                const div = document.createElement('div');
-                div.className = 'candidate-option';
-                div.innerHTML = `${candidateName} - ${currency} ${salary}`;
-                div.onclick = () => {
-                    const salaryInGBP = parseFloat(salary) * CONVERSION_RATES[currency];
-                    const feePercent = parseFloat(row.querySelector('.fee-percent').value);
-                    const fee = (salaryInGBP * feePercent) / 100;
-
-                    const offeredData = {
-                        consultant: row.querySelector('.consultant').value,
-                        clientName: row.querySelector('.client-name').value,
-                        role: row.querySelector('.role').value,
-                        candidate: candidateName,
-                        salary: `${currency} ${salary}`,
-                        feePercent: feePercent.toString(),
-                        fee: fee.toFixed(2),
-                        vat: row.querySelector('.vat').value,
-                        estInvoiceMonth: row.querySelector('.est-invoice-month').value,
-                        estInvoiceYear: row.querySelector('.est-invoice-year').value,
-                        type: 'Perm'
-                    };
-
-                    let offeredList = JSON.parse(localStorage.getItem('offeredList') || '[]');
-                    offeredList.push(offeredData);
-                    localStorage.setItem('offeredList', JSON.stringify(offeredList));
-
-                    closeModal();
-                    alert('Successfully moved to Offered');
-                };
-                candidateList.appendChild(div);
-            });
-
-            modal.style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('candidateModal').style.display = 'none';
-        }
-
-        function deleteRow(button) {
-            const row = button.closest('tr');
-            const index = Array.from(row.parentNode.children).indexOf(row);
+def offered_pipeline():
+    display_logo()
+    st.title("Offered Pipeline")
+    
+    global offered_data
+    
+    # Display offered candidates
+    if not offered_data.empty:
+        st.dataframe(offered_data)
+        
+        # Action buttons for each row
+        for i in range(len(offered_data)):
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"Move to Invoiced {i}", key=f"inv_{i}"):
+                    invoice_data.append(offered_data.iloc[i])
+                    offered_data.drop(i, inplace=True)
+                    st.success('Moved to Invoiced!')
+            with col2:
+                if st.button(f"Reject {i}", key=f"rej_{i}"):
+                    rejected_data.append(offered_data.iloc[i])
+                    offered_data.drop(i, inplace=True)
+                    st.warning('Moved to Rejected!')
+                    
+def invoice_pipeline():
+    display_logo()
+    st.title("Invoice Pipeline")
+    
+    global invoice_data
+    
+    # Display invoiced candidates
+    if not invoice_data.empty:
+        invoice_data['Start Date'] = pd.to_datetime(invoice_data['Estimated Month'], format='%B')
+        invoice_data['Payment Terms'] = 30  # Assume 30 days payment terms
+        
+        invoice_data['Due Date'] = invoice_data['Start Date'] + pd.to_timedelta(invoice_data['Payment Terms'], unit='d')
+        
+        # Add checkbox for paid invoices
+        invoice_data['Paid'] = False
+        
+        for i in range(len(invoice_data)):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if not invoice_data.at[i, 'Paid']:
+                    if col1.checkbox(f"Mark as Paid {i}", key=f"paid_{i}"):
+                        invoice_data.at[i, 'Paid'] = True
+                        st.success('Invoice marked as paid!')
             
-            let pipelineData = JSON.parse(localStorage.getItem('pipelineData') || '[]');
-            const deletedItem = pipelineData[index];
-            
-            const rejectedData = {
-                ...deletedItem,
-                rejectionDate: new Date().toISOString().split('T')[0],
-                type: 'Perm'
-            };
-            
-            let rejectedList = JSON.parse(localStorage.getItem('rejectedList') || '[]');
-            rejectedList.push(rejectedData);
-            localStorage.setItem('rejectedList', JSON.stringify(rejectedList));
-            
-            pipelineData.splice(index, 1);
-            localStorage.setItem('pipelineData', JSON.stringify(pipelineData));
-            
-            row.remove();
-        }
+            with col2:
+                if not invoice_data.at[i, 'Paid']:
+                    overdue_days = (pd.Timestamp.now() - invoice_data.at[i, 'Due Date']).days
+                    if overdue_days > 0:
+                        col2.error(f"Overdue by {overdue_days} days")
 
-        function saveToLocalStorage() {
-            const rows = Array.from(document.querySelectorAll('#pipelineBody tr'));
-            const pipelineData = rows.map(row => {
-                const candidateEntries = row.querySelectorAll('.candidate-entry');
-                const candidates = Array.from(candidateEntries).map(entry => ({
-                    name: entry.querySelector('.candidate-name').value,
-                    salary: entry.querySelector('.candidate-salary').value,
-                    currency: entry.querySelector('.currency').value
-                }));
+def rejected_pipeline():
+    display_logo()
+    st.title("Rejected Pipeline")
+    
+    global rejected_data
+    
+    # Display rejected candidates
+    if not rejected_data.empty:
+        st.dataframe(rejected_data)
 
-                return {
-                    consultant: row.querySelector('.consultant').value,
-                    clientName: row.querySelector('.client-name').value,
-                    role: row.querySelector('.role').value,
-                    candidates: candidates,
-                    feePercent: row.querySelector('.fee-percent').value,
-                    fee: row.querySelector('.fee').textContent,
-                    probability: row.querySelector('.probability').value,
-                    probabilityFee: row.querySelector('.probability-fee').textContent,
-                    vat: row.querySelector('.vat').value,
-                    estInvoiceMonth: row.querySelector('.est-invoice-month').value,
-                    estInvoiceYear: row.querySelector('.est-invoice-year').value
-                };
-            });
-            localStorage.setItem('pipelineData', JSON.stringify(pipelineData));
-        }
+def stats_page():
+    display_logo()
+    st.title("Stats Page")
+    
+    # Example statistics (dummy data for illustration)
+    
+    total_candidates = len(pipeline_data) + len(offered_data) + len(invoice_data) + len(rejected_data)
+    
+    stats = {
+        "Total Candidates": total_candidates,
+        "Total Fees": pipeline_data['Fee £'].sum(),
+        "Average Fee": pipeline_data['Fee £'].mean() if not pipeline_data.empty else 0,
+        "Total Probability Value": pipeline_data['Probability £'].sum()
+    }
+    
+    for key, value in stats.items():
+        st.write(f"{key}: {value}")
+    
+# Main function to run the app
+def main():
+    pages = {
+        "Home": home_page,
+        "Pipeline": pipeline_page,
+        "Offered": offered_pipeline,
+        "Invoice": invoice_pipeline,
+        "Rejected": rejected_pipeline,
+        "Stats": stats_page,
+    }
+    
+    st.sidebar.title("Navigation")
+    
+    # Create a button for each page in the sidebar
+    if st.sidebar.button("Home"):
+        pages["Home"]()
+        
+    elif st.sidebar.button("Pipeline"):
+        pages["Pipeline"]()
+        
+    elif st.sidebar.button("Offered"):
+        pages["Offered"]()
+        
+    elif st.sidebar.button("Invoice"):
+        pages["Invoice"]()
+        
+    elif st.sidebar.button("Rejected"):
+        pages["Rejected"]()
+        
+    elif st.sidebar.button("Stats"):
+        pages["Stats"]()
 
-        function loadFromLocalStorage() {
-            const pipelineData = JSON.parse(localStorage.getItem('pipelineData') || '[]');
-            const tbody = document.getElementById('pipelineBody');
-            tbody.innerHTML = '';
-            
-            const currentYear = new Date().getFullYear();
-            const years = [currentYear, currentYear + 1, currentYear + 2];
-            
-            pipelineData.forEach(data => {
-                const row = document.createElement('tr');
-                
-                const candidatesHtml = data.candidates.map((candidate, index) => `
-                    <div class="candidate-entry">
-                        <input type="text" class="candidate-name" value="${candidate.name}" placeholder="Name" onchange="saveToLocalStorage()">
-                        <input type="number" class="candidate-salary" value="${candidate.salary}" placeholder="Salary" onchange="calculateFees(this.closest('tr'))">
-                        <select class="currency" onchange="calculateFees(this.closest('tr'))">
-                            <option value="GBP" ${candidate.currency === 'GBP' ? 'selected' : ''}>GBP</option>
-                            <option value="USD" ${candidate.currency === 'USD' ? 'selected' : ''}>USD</option>
-                            <option value="EUR" ${candidate.currency === 'EUR' ? 'selected' : ''}>EUR</option>
-                        </select>
-                        <button type="button" class="remove-candidate" onclick="removeCandidate(this)" ${index === 0 && data.candidates.length === 1 ? 'style="display: none;"' : ''}>×</button>
-                    </div>
-                `).join('');
-
-                row.innerHTML = `
-                    <td>
-                        <select class="consultant" onchange="saveToLocalStorage()">
-                            <option value="">Select Consultant</option>
-                            ${CONSULTANTS.map(consultant => 
-                                `<option value="${consultant}" ${data.consultant === consultant ? 'selected' : ''}>${consultant}</option>`
-                            ).join('')}
-                        </select>
-                    </td>
-                    <td><input type="text" class="client-name" value="${data.clientName}" onchange="saveToLocalStorage()"></td>
-                    <td><input type="text" class="role" value="${data.role}" onchange="saveToLocalStorage()"></td>
-                    <td>
-                        <div class="candidates-container">
-                            ${candidatesHtml}
-                        </div>
-                        <button type="button" class="add-candidate" onclick="addCandidate(this)">+ Add Candidate</button>
-                    </td>
-                    <td><input type="number" class="fee-percent" value="${data.feePercent}" onchange="calculateFees(this.closest('tr'))"></td>
-                    <td class="fee">${data.fee || '£0.00'}</td>
-                    <td><input type="number" class="probability" value="${data.probability}" onchange="calculateFees(this.closest('tr'))"></td>
-                    <td class="probability-fee">${data.probabilityFee || '£0.00'}</td>
-                    <td>
-                        <select class="vat" onchange="saveToLocalStorage()">
-                            <option value="Yes" ${data.vat === 'Yes' ? 'selected' : ''}>Yes</option>
-                            <option value="No" ${data.vat === 'No' ? 'selected' : ''}>No</option>
-                        </select>
-                    </td>
-                    <td>
-                        <div class="date-container">
-                            <select class="est-invoice-month" onchange="saveToLocalStorage()">
-                                <option value="">Month</option>
-                                ${['January', 'February', 'March', 'April', 'May', 'June', 
-                                   'July', 'August', 'September', 'October', 'November', 'December']
-                                    .map(month => `<option value="${month}" 
-                                        ${data.estInvoiceMonth === month ? 'selected' : ''}>${month}</option>`
-                                    ).join('')}
-                            </select>
-                            <select class="est-invoice-year" onchange="saveToLocalStorage()">
-                                <option value="">Year</option>
-                                ${years.map(year => `<option value="${year}" 
-                                    ${data.estInvoiceYear === year.toString() ? 'selected' : ''}>${year}</option>`
-                                ).join('')}
-                            </select>
-                        </div>
-                    </td>
-                    <td class="action-buttons">
-                        <button onclick="moveToOffered(this.closest('tr'))">Move to Offered</button>
-                        <button onclick="deleteRow(this)">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-                
-                // Recalculate fees for the loaded row
-                calculateFees(row);
-            });
-        }
-
-        function displayPipelineData() {
-            // Get both perm and contractor pipeline data
-            const permPipelineData = JSON.parse(localStorage.getItem('pipelineData') || '[]');
-            const contractorPipelineData = JSON.parse(localStorage.getItem('contractorPipelineData') || '[]');
-
-            // Combine both datasets with type identifier
-            const allPipelineData = [
-                ...permPipelineData.map(item => ({...item, type: 'Perm'})),
-                ...contractorPipelineData.map(item => ({...item, type: 'Contractor'}))
-            ];
-
-            // Group data by month and year
-            const groupedData = {};
-            allPipelineData.forEach(item => {
-                const key = `${item.estInvoiceMonth} ${item.estInvoiceYear}`;
-                if (!groupedData[key]) {
-                    groupedData[key] = {
-                        perm: { totalFee: 0, totalProbabilityFee: 0 },
-                        contractor: { totalFee: 0, totalProbabilityFee: 0 }
-                    };
-                }
-
-                // Calculate and add to totals based on type
-                if (item.type === 'Perm') {
-                    const fee = parseFloat(item.fee?.replace('£', '') || 0);
-                    const probFee = parseFloat(item.probabilityFee?.replace('£', '') || 0);
-                    groupedData[key].perm.totalFee += fee;
-                    groupedData[key].perm.totalProbabilityFee += probFee;
-                } else {
-                    const fee = parseFloat(item.fee?.replace('£', '') || 0);
-                    const probFee = parseFloat(item.probabilityFee?.replace('£', '') || 0);
-                    groupedData[key].contractor.totalFee += fee;
-                    groupedData[key].contractor.totalProbabilityFee += probFee;
-                }
-            });
-
-            // Sort the months chronologically
-            const sortedMonths = Object.keys(groupedData).sort((a, b) => {
-                const [monthA, yearA] = a.split(' ');
-                const [monthB, yearB] = b.split(' ');
-                const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                               'July', 'August', 'September', 'October', 'November', 'December'];
-                if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
-                return months.indexOf(monthA) - months.indexOf(monthB);
-            });
-
-            // Create the HTML
-            const tbody = document.getElementById('pipelineBody');
-            tbody.innerHTML = '';
-
-            sortedMonths.forEach(month => {
-                const data = groupedData[month];
-                const row = document.createElement('tr');
-                
-                const totalMonthFee = data.perm.totalFee + data.contractor.totalFee;
-                const totalMonthProbFee = data.perm.totalProbabilityFee + data.contractor.totalProbabilityFee;
-
-                row.innerHTML = `
-                    <td colspan="3"><strong>${month}</strong></td>
-                    <td>Perm: £${data.perm.totalFee.toFixed(2)}</td>
-                    <td>Contractor: £${data.contractor.totalFee.toFixed(2)}</td>
-                    <td><strong>Total: £${totalMonthFee.toFixed(2)}</strong></td>
-                    <td>Perm Prob: £${data.perm.totalProbabilityFee.toFixed(2)}</td>
-                    <td>Contractor Prob: £${data.contractor.totalProbabilityFee.toFixed(2)}</td>
-                    <td colspan="3"><strong>Total Prob: £${totalMonthProbFee.toFixed(2)}</strong></td>
-                `;
-
-                tbody.appendChild(row);
-            });
-
-            // Add grand totals row
-            const grandTotals = sortedMonths.reduce((acc, month) => {
-                const data = groupedData[month];
-                acc.permFee += data.perm.totalFee;
-                acc.contractorFee += data.contractor.totalFee;
-                acc.permProbFee += data.perm.totalProbabilityFee;
-                acc.contractorProbFee += data.contractor.totalProbabilityFee;
-                return acc;
-            }, { permFee: 0, contractorFee: 0, permProbFee: 0, contractorProbFee: 0 });
-
-            const totalRow = document.createElement('tr');
-            totalRow.className = 'grand-total-row';
-            totalRow.innerHTML = `
-                <td colspan="3"><strong>GRAND TOTAL</strong></td>
-                <td>Perm: £${grandTotals.permFee.toFixed(2)}</td>
-                <td>Contractor: £${grandTotals.contractorFee.toFixed(2)}</td>
-                <td><strong>Total: £${(grandTotals.permFee + grandTotals.contractorFee).toFixed(2)}</strong></td>
-                <td>Perm Prob: £${grandTotals.permProbFee.toFixed(2)}</td>
-                <td>Contractor Prob: £${grandTotals.contractorProbFee.toFixed(2)}</td>
-                <td colspan="3"><strong>Total Prob: £${(grandTotals.permProbFee + grandTotals.contractorProbFee).toFixed(2)}</strong></td>
-            `;
-            tbody.appendChild(totalRow);
-        }
-
-        document.addEventListener('DOMContentLoaded', loadFromLocalStorage);
-
-        function addToOffered(pipelineItem) {
-            console.log('Pipeline item being converted:', pipelineItem); // Debug log
-            
-            const offeredList = JSON.parse(localStorage.getItem('offeredList') || '[]');
-            
-            // Create new offered entry from pipeline item
-            const offeredEntry = {
-                type: "Perm",
-                consultant: pipelineItem.consultant || '',
-                clientName: pipelineItem.clientName || '',
-                role: pipelineItem.role || '',
-                candidate: pipelineItem.candidates[0]?.name || '',
-                salary: pipelineItem.candidates[0]?.salary || '',
-                feePercent: pipelineItem.feePercent || '',
-                fee: pipelineItem.fee || '',
-                vat: pipelineItem.vat || 'No',
-                estInvoiceMonth: pipelineItem.estInvoiceMonth || '',
-                estInvoiceYear: pipelineItem.estInvoiceYear || ''
-            };
-
-            console.log('Created offer entry:', offeredEntry); // Debug log
-
-            // Add to offered list
-            offeredList.push(offeredEntry);
-            localStorage.setItem('offeredList', JSON.stringify(offeredList));
-
-            // Remove from pipeline
-            removePipelineItem(pipelineItem);
-            
-            // Refresh displays
-            displayPipeline();
-        }
-    </script>
-</body>
-</html>
+if __name__ == "__main__":
+    main()
