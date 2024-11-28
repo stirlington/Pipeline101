@@ -4,8 +4,8 @@ import numpy as np
 
 # Initialize sample data
 pipeline_data = pd.DataFrame(columns=[
-    'Consultant', 'Client Name', 'Vacancy', 'Candidates', 'Currency',
-    'Fee %', 'Fee £', 'Probability %', 'Probability £',
+    'Consultant', 'Client Name', 'Vacancy', 'Candidate', 'Salary/Hourly Rate',
+    'Currency', 'Fee %', 'Fee £', 'Probability %', 'Probability £',
     'VAT', 'Estimated Month'
 ])
 
@@ -44,12 +44,13 @@ def pipeline_page():
     # Display current pipeline as a table
     st.dataframe(pipeline_data)
     
-    # Adding multiple candidates to a single vacancy
-    with st.form(key='add_candidates'):
+    # Adding candidates directly to the pipeline using a form
+    with st.form(key='add_candidate'):
         consultant = st.selectbox("Consultant", ["Chris", "Max"])
         client_name = st.text_input("Client Name")
         vacancy = st.text_input("Vacancy")
-        candidates = st.text_area("Candidates (Enter each candidate's salary on a new line)")
+        candidate = st.text_input("Candidate")
+        salary_hourly_rate = st.number_input("Salary/Hourly Rate", min_value=0.0)
         currency = st.selectbox("Currency", ["£", "$", "€"])
         fee_percent = st.number_input("Fee %", min_value=0.0, max_value=100.0)
         probability_percent = st.number_input("Probability %", min_value=0.0, max_value=100.0)
@@ -62,29 +63,26 @@ def pipeline_page():
         submit_button = st.form_submit_button(label='Add to Pipeline')
         
         if submit_button:
-            # Process candidate salaries
-            candidate_salaries = [float(salary.strip()) for salary in candidates.split('\n') if salary.strip()]
-            if candidate_salaries:
-                min_salary = min(candidate_salaries)
-                fee_pounds = min_salary * (fee_percent / 100)
-                probability_pounds = fee_pounds * (probability_percent / 100)
-                
-                new_entry = {
-                    'Consultant': consultant,
-                    'Client Name': client_name,
-                    'Vacancy': vacancy,
-                    'Candidates': ', '.join(map(str, candidate_salaries)),
-                    'Currency': currency,
-                    'Fee %': fee_percent,
-                    'Fee £': fee_pounds,
-                    'Probability %': probability_percent,
-                    'Probability £': probability_pounds,
-                    'VAT': vat,
-                    'Estimated Month': estimated_month
-                }
-                
-                pipeline_data = pipeline_data.append(new_entry, ignore_index=True)
-                st.success('Entry added to pipeline!')
+            fee_pounds = salary_hourly_rate * (fee_percent / 100)
+            probability_pounds = fee_pounds * (probability_percent / 100)
+            
+            new_entry = {
+                'Consultant': consultant,
+                'Client Name': client_name,
+                'Vacancy': vacancy,
+                'Candidate': candidate,
+                'Salary/Hourly Rate': salary_hourly_rate,
+                'Currency': currency,
+                'Fee %': fee_percent,
+                'Fee £': fee_pounds,
+                'Probability %': probability_percent,
+                'Probability £': probability_pounds,
+                'VAT': vat,
+                'Estimated Month': estimated_month
+            }
+            
+            pipeline_data = pipeline_data.append(new_entry, ignore_index=True)
+            st.success('Entry added to pipeline!')
 
 def offered_pipeline():
     display_logo()
